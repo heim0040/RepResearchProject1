@@ -1,0 +1,126 @@
+Reproducible Research: Course Project 1 Submission
+==================================================
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Step 1: Read and process dataset
+Load packages, read and process data
+
+```{r data}
+library(dplyr)
+library(lubridate)
+
+# read data
+amd <- read.csv("activity.csv", stringsAsFactors=FALSE)
+
+# transform date column from character to date
+amd$date <- mdy(amd$date)
+
+# data grouped by date
+amd %>% group_by(date) %>%
+        summarize(steps = sum(steps)) -> amd2
+
+# data grouped by interval
+amd %>% na.omit() %>% 
+        group_by(interval) %>%
+        summarize(steps = mean(steps)) -> amd3
+
+```
+
+
+## 2) Histogram of the total number of steps taken each day
+
+
+```{r daily steps, echo=TRUE}
+library(ggplot2)
+
+# histogram of the total number of steps each day
+ggplot(amd2, aes(x=steps)) +
+        geom_histogram(color="black", fill="blue")
+```
+
+
+## 3) Mean and median number of steps taken each day
+
+
+```{r mean and median, echo=TRUE}
+summary(amd2$steps)
+```
+
+## 4) Time series plot of the average number of steps taken
+
+```{r time series, echo=TRUE}
+# time series plot of average steps 
+plot(amd3$interval, amd3$steps, type="l",xlab="5-Minute Interval",ylab="Average Number of Steps Taken")
+
+```
+
+## 5) The 5-minute interval that, on average, contains the maximum number of steps
+
+```{r top interval, echo=TRUE}
+amd3 %>% filter(print(steps), print(steps == max(steps)), steps == max(steps))
+```
+
+## 6) Code to describe and show a strategy for imputing missing data
+
+Number of rows in the dataset with missing data:
+
+```{r missing rows, echo=TRUE}
+# calculate number of rows with missing values in the dataset
+sum(!complete.cases(amd))
+```
+
+Code for imputing missing data with mean of 5-minute interval:
+
+```{r impute means, echo=TRUE}
+# impute mean (by 5-minute interval) for missing values in dataset
+amd %>%
+        group_by(interval) %>%
+        mutate(steps = replace(steps, is.na(steps), mean(steps, na.rm = TRUE))) -> amd5
+
+# new data grouped by date
+amd5 %>% group_by(date) %>%
+        summarize(steps = sum(steps)) -> amd6
+```
+
+## 7) Histogram of the total number of steps taken each day after missing values are imputed
+
+```{r histogram of new data, echo=TRUE}
+# histogram of the total number of steps each day with new dataset
+ggplot(amd6, aes(x=steps)) +
+        geom_histogram(color="black", fill="blue")
+```
+
+## 8) Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+
+```{r panel plot, echo=TRUE}
+# weekday dataset
+amd5 %>% mutate(day = weekdays(date),
+                daytype = if_else(day == "Monday"|day == "Tuesday"|day=="Wednesday"|day=="Thursday"|day=="Friday", "Weekday","Weekend")) -> daytype
+
+# weekday dataset
+daytype %>%
+        filter(daytype == "Weekday") %>%
+        group_by(interval) %>%
+        summarize(steps = sum(steps)) -> weekday
+
+#weekend dataset
+daytype %>%
+        filter(daytype == "Weekend") %>%
+        group_by(interval) %>%
+        summarize(steps = sum(steps)) -> weekend
+
+# time series plot of average steps for weekdays
+plot(weekday$interval, weekday$steps, type="l",xlab="5-Minute Interval",ylab="Average Number of Steps Taken")
+
+# time series plot of average steps for weekdends
+plot(weekend$interval, weekend$steps, type="l",xlab="5-Minute Interval",ylab="Average Number of Steps Taken")
+
+```
+
+
